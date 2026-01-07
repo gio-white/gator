@@ -37,4 +37,3 @@ func handlerRegister(s *state, cmd command) error {
     fmt.Printf("Debug Info: %+v\n", user)    
     return nil
 }
-git commit -m "aggreGator setup, goose, sqlc, handlers"
