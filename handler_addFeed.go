@@ -9,13 +9,9 @@ import (
 	"github.com/google/uuid"
 )
 
-func handlerAddFeed (s *state, cmd command) error {
+func handlerAddFeed (s *state, cmd command, user database.User) error {
 	if len(cmd.args) != 2 {
 		return fmt.Errorf("the addFeed handler expects two arguments: \n- name\n- url")
-	}
-	currentUser, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
-	if err != nil {
-		return fmt.Errorf("could not find current user: %w", err)
 	}
 
 	name := cmd.args[0]
@@ -27,7 +23,7 @@ func handlerAddFeed (s *state, cmd command) error {
 		UpdatedAt:	time.Now().UTC(),
 		Name:		name,
 		Url:       	url,
-		UserID:    	currentUser.ID,
+		UserID:    	user.ID,
 	}
 
 	feed, err := s.db.CreateFeed(context.Background(), params)
@@ -38,6 +34,19 @@ func handlerAddFeed (s *state, cmd command) error {
 	fmt.Printf("* ID:            %s\n", feed.ID)
 	fmt.Printf("* Name:          %s\n", feed.Name)
 	fmt.Printf("* URL:           %s\n", feed.Url)
-	fmt.Printf("* Created By:    %s\n", currentUser.Name)
-	return nil
+	fmt.Printf("* Created By:    %s\n", user.Name)
+
+	_, err = s.db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
+        ID:        uuid.New(),
+        CreatedAt: time.Now().UTC(),
+        UpdatedAt: time.Now().UTC(),
+        UserID:    user.ID,
+        FeedID:    feed.ID,
+    })
+    if err != nil {
+        return fmt.Errorf("feed created, but failed to auto-follow: %w", err)
+    }
+
+    fmt.Printf("Feed '%s' created and followed successfully!\n", feed.Name)
+    return nil
 }
